@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLOWMATE — Platform Layanan Kesehatan Kewanitaan</title>
+    <meta name="description" content="FLOWMATE: skrining dismenore WaLIDD, rekomendasi nonfarmakologis, dan jurnal haid harian.">
+    <meta name="theme-color" content="#e11d48">
+
+    <!-- Icon web -->
+    <link rel="icon" type="image/svg+xml" href="src/assets/img/favicon.svg">
+    <link rel="apple-touch-icon" href="src/assets/img/favicon.svg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: {
+            fontFamily: { sans: ['Inter', 'sans-serif'] },
+            colors: { brand: { 50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c' } }
+        } } }
+    </script>
+    <link rel="stylesheet" href="src/assets/css/style.css">
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- NAVBAR -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
+            <div onclick="goHome()" class="flex items-center gap-3 cursor-pointer group shrink-0">
+                <img src="src/assets/img/favicon.svg" alt="Logo FLOWMATE" class="w-10 h-10 rounded-2xl shadow-sm group-hover:scale-105 transition">
+                <div>
+                    <span class="font-black text-xl tracking-tight text-slate-900 group-hover:text-brand-600 transition">FLOWMATE</span>
+                    <p class="hidden sm:block text-[10px] text-slate-400 font-bold uppercase tracking-wider -mt-1">Women's Health Companion</p>
+                </div>
+            </div>
+            <nav id="main-nav" class="hidden md:flex items-center gap-7 text-xs font-bold text-slate-600"></nav>
+            <div id="auth-nav-action" class="flex items-center gap-3"></div>
+        </div>
+        <nav id="mobile-nav" class="md:hidden flex gap-1 overflow-x-auto px-3 pb-2 text-[11px] font-bold text-slate-600"></nav>
+    </header>
+
+    <main id="app-content" class="flex-grow"></main>
+
+    <!-- FEM AI: ikon kecil (hanya tampil untuk pasien yang login) -->
+    <button id="floating-ai-btn" onclick="toggleFloatingBot(true)" title="Tanya FEM AI" aria-label="Buka FEM AI"
+        class="hidden fixed bottom-5 right-5 z-40 w-12 h-12 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-xl items-center justify-center text-xl border-2 border-white transition hover:scale-105">
+        🤖
+    </button>
+
+    <!-- FEM AI widget -->
+    <div id="floating-fembot-widget" class="hidden fixed bottom-5 right-5 z-50">
+        <div class="bg-white border border-rose-100 rounded-3xl shadow-2xl w-[calc(100vw-2.5rem)] sm:w-[380px] overflow-hidden flex flex-col h-[480px] max-h-[80vh] animate-fade-in">
+            <div class="bg-brand-600 px-4 py-3 text-white flex justify-between items-center">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-lg">🤖</span>
+                    <div>
+                        <h4 class="font-bold text-sm leading-tight">FEM AI</h4>
+                        <p class="text-[10px] text-rose-100">Teman ngobrol soal haid & kesehatan wanita</p>
+                    </div>
+                </div>
+                <button onclick="toggleFloatingBot(false)" aria-label="Tutup" class="hover:bg-brand-700 w-7 h-7 rounded-lg text-sm font-bold">✕</button>
+            </div>
+            <div id="fembot-widget-messages" class="flex-grow p-4 overflow-y-auto space-y-3 text-xs bg-slate-50 flex flex-col"></div>
+            <div id="fembot-chips" class="px-3 pt-2 bg-white border-t border-slate-100 flex gap-1.5 overflow-x-auto"></div>
+            <form onsubmit="handleWidgetChatSubmit(event)" class="p-3 bg-white flex gap-2">
+                <input type="text" id="widget-input" autocomplete="off" maxlength="400" placeholder="Tanya apa aja soal haid, PMS, kram…"
+                    class="flex-grow text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-4 rounded-xl transition">Kirim</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MASUK / DAFTAR (latar blur) -->
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 hidden items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl relative space-y-4 animate-fade-in my-auto">
+            <button onclick="closeLoginModal()" aria-label="Tutup" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+            <div class="text-center space-y-2">
+                <img src="src/assets/img/favicon.svg" alt="" class="w-12 h-12 mx-auto rounded-2xl">
+                <h3 class="text-2xl font-extrabold text-slate-900">Selamat datang di FLOWMATE</h3>
+            </div>
+            <div class="flex bg-slate-100 p-1 rounded-2xl gap-1">
+                <button type="button" id="tab-masuk" onclick="switchAuthTab('masuk')" class="flex-1 py-2.5 rounded-xl text-xs font-bold">Masuk</button>
+                <button type="button" id="tab-daftar" onclick="switchAuthTab('daftar')" class="flex-1 py-2.5 rounded-xl text-xs font-bold">Daftar</button>
+            </div>
+
+            <!-- MASUK -->
+            <form id="form-masuk" onsubmit="handleLoginSubmit(event)" class="space-y-4" autocomplete="off">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" for="login-username">Username</label>
+                    <input type="text" id="login-username" required autocapitalize="none" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" for="login-password">Kata sandi</label>
+                    <div class="relative">
+                        <input type="password" id="login-password" required class="w-full text-xs p-3 pr-20 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <button type="button" onclick="togglePwd('login-password', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 hover:text-brand-600">Lihat</button>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold text-slate-700" for="login-captcha">Verifikasi: bukan robot</label>
+                        <span id="captcha-question" class="captcha-q font-extrabold text-brand-600 text-sm bg-rose-100 px-3 py-1 rounded-lg"></span>
+                    </div>
+                    <input type="number" id="login-captcha" required min="0" max="20" placeholder="Hasil penjumlahan" class="captcha-in w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3.5 rounded-xl shadow-lg transition">Masuk →</button>
+            </form>
+
+            <!-- DAFTAR -->
+            <form id="form-daftar" onsubmit="handleRegisterSubmit(event)" class="space-y-3 hidden" autocomplete="off">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" for="reg-nama">Nama lengkap</label>
+                    <input type="text" id="reg-nama" required maxlength="60" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" for="reg-username">Username <span class="font-normal text-slate-400">(huruf kecil, angka, . atau _ ; 3–20 karakter)</span></label>
+                    <input type="text" id="reg-username" required autocapitalize="none" maxlength="20" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1" for="reg-password">Kata sandi</label>
+                        <input type="password" id="reg-password" required minlength="6" placeholder="Min. 6 karakter" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1" for="reg-password2">Ulangi sandi</label>
+                        <input type="password" id="reg-password2" required minlength="6" class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500"></div>
+                </div>
+                <label class="flex gap-2.5 items-start text-[11px] text-slate-600 leading-relaxed bg-rose-50/60 border border-rose-100 rounded-2xl p-3 cursor-pointer">
+                    <input type="checkbox" id="reg-consent" class="mt-0.5 accent-rose-600">
+                    <span>Saya setuju data skrining dan jurnal saya digunakan untuk layanan FLOWMATE dan analisis penelitian. Data hanya dapat dilihat oleh saya dan admin FLOWMATE. FLOWMATE adalah alat skrining, bukan diagnosis medis.</span>
+                </label>
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold text-slate-700" for="reg-captcha">Verifikasi: bukan robot</label>
+                        <span class="captcha-q font-extrabold text-brand-600 text-sm bg-rose-100 px-3 py-1 rounded-lg"></span>
+                    </div>
+                    <input type="number" id="reg-captcha" required min="0" max="20" placeholder="Hasil penjumlahan" class="captcha-in w-full text-xs p-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs py-3.5 rounded-xl shadow-lg transition">Buat Akun & Mulai →</button>
+            </form>
+
+            <p id="auth-error" class="hidden text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl p-3"></p>
+
+            <div id="login-guide" class="bg-rose-50/70 border border-rose-100 rounded-2xl p-4 text-[11px] text-slate-600 space-y-1.5">
+                <p class="font-bold text-brand-700">Cara memakai FLOWMATE</p>
+                <ol class="list-decimal pl-4 space-y-1">
+                    <li><b>Belum punya akun?</b> Pilih tab <b>Daftar</b>, isi nama, username, dan kata sandi, centang persetujuan, lalu jawab soal penjumlahan.</li>
+                    <li><b>Sudah punya akun?</b> Pilih tab <b>Masuk</b> dan isi username serta kata sandimu.</li>
+                    <li>Setelah masuk, isi <b>Skrining</b> (pre-test atau post-test), lihat hasil dan rekomendasinya.</li>
+                    <li>Catat kondisi harianmu di <b>Jurnal &amp; Intervensi</b>. Lupa kata sandi? Hubungi admin FLOWMATE.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-xs mt-10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-2">
+                <img src="src/assets/img/favicon.svg" alt="" class="w-5 h-5 rounded-md">
+                <span class="font-bold text-white">FLOWMATE</span>
+                <span class="text-slate-600">— Platform Layanan Kesehatan Kewanitaan</span>
+            </div>
+            <p class="text-[11px] text-slate-500">© 2026 FLOWMATE. Hak Cipta Dilindungi Undang-Undang.</p>
+        </div>
+    </footer>
+
+    <!-- Library ekspor (PDF & Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Core -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="src/assets/js/config.js"></script>
+    <script src="src/assets/js/db.js"></script>
+    <script src="src/assets/js/ref_data.js"></script>
+    <script src="src/assets/js/walidd.js"></script>
+    <script src="src/assets/js/fembot_kb.js"></script>
+    <script src="src/assets/js/ml_engine.js"></script>
+    <script src="src/assets/js/export.js"></script>
+    <script src="src/assets/js/auth.js"></script>
+
+    <!-- Halaman pasien -->
+    <script src="src/pages/pasien/beranda.js"></script>
+    <script src="src/pages/pasien/skrining.js"></script>
+    <script src="src/pages/pasien/jurnal.js"></script>
+
+    <!-- Halaman admin / super admin -->
+    <script src="src/pages/admin/overview.js"></script>
+    <script src="src/pages/admin/kelola_user.js"></script>
+
+    <!-- Router (dimuat terakhir) -->
+    <script src="src/assets/js/app.js"></script>
+</body>
+</html>
