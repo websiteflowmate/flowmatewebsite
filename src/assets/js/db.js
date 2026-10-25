@@ -124,10 +124,10 @@ const DB = {
             u.role = role; return { ok: true };
         } catch (er) { return fail(er, 'Gagal mengubah peran (hanya superadmin yang boleh).'); }
     },
-    /** action: 'create' | 'delete' | 'reset' -> Edge Function admin-actions */
+    /** action: 'create' | 'delete' | 'reset' -> Edge Function admin (lihat ADMIN_FUNCTION di config.js) */
     async adminAction(body) {
         try {
-            const { data, error } = await sb.functions.invoke('admin-actions', { body });
+            const { data, error } = await sb.functions.invoke(FLOWMATE_CONFIG.ADMIN_FUNCTION, { body });
             if (error) throw error;
             if (!data || !data.ok) return { ok: false, error: (data && data.error) || 'Aksi gagal.' };
             await DB.refreshProfiles(); return { ok: true };
