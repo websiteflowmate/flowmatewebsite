@@ -45,7 +45,7 @@ function renderLandingPage() {
         </div>
         <div class="lg:col-span-5">
           <div class="bg-white p-6 sm:p-7 rounded-3xl shadow-2xl border border-slate-100 space-y-5">
-            <div class="flex items-center gap-3"><span class="text-3xl">📊</span><div><h3 class="font-extrabold text-slate-800 text-base">Contoh Ringkasan Kesehatan</h3><p class="text-xs text-slate-400">Tampilan setelah kamu masuk</p></div></div>
+            <div class="flex items-center gap-3"><span class="text-3xl">📊</span><div><h3 class="font-extrabold text-slate-800 text-base">Ringkasan Kesehatan</h3><p class="text-xs text-slate-400">Pantau kondisimu di sini</p></div></div>
             <div class="bg-rose-50/70 border border-rose-100 p-4 rounded-2xl space-y-2">
               <div class="flex justify-between text-xs"><span class="font-bold text-slate-700">Hasil skrining</span><span class="text-amber-700 font-bold">Sedang</span></div>
               <div class="bar"><i style="width:45%;background:#e11d48"></i></div>
