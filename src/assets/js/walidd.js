@@ -104,6 +104,15 @@ const REC_LIB = {
     gaya: { id: 'gaya', icon: '💧', title: 'Minum cukup & tidur cukup', short: 'Air hangat, makan teratur, tidur 7–9 jam.',
         steps: ['Minum air putih/hangat sepanjang hari.', 'Pilih makanan bergizi (sayur, buah, protein) dan kurangi kafein serta makanan sangat asin.', 'Usahakan tidur cukup dan jam tidur teratur.'],
         caution: '' },
+    gula: { id: 'gula', icon: '🍬', title: 'Kurangi konsumsi gula', short: 'Batasi minuman manis, kue, dan camilan tinggi gula.',
+        steps: ['Ganti minuman manis (soda, boba, kopi susu) dengan air putih atau teh tawar.', 'Batasi kue, donat, es krim, dan cokelat manis, terutama saat haid.', 'Cek label kemasan pada baris "gula"; pilih yang tanpa pemanis tambahan.', 'Bila ingin rasa manis, pilih buah segar.'],
+        caution: 'Batasi gula tambahan maksimal sekitar 50 g (4 sendok makan) per hari; lebih rendah lebih baik.' },
+    tepung: { id: 'tepung', icon: '🍞', title: 'Kurangi konsumsi berbahan dasar tepung', short: 'Kurangi roti putih, mi, pasta, dan gorengan berbalut tepung.',
+        steps: ['Kurangi roti putih, mi instan, pasta, dan gorengan berbalut tepung.', 'Pilih karbohidrat utuh: nasi merah, oat, ubi, jagung.', 'Isi separuh piring dengan sayur dan tambahkan protein (telur, ikan, tempe).', 'Pilih makanan dikukus, direbus, atau dipanggang daripada digoreng.'],
+        caution: 'Karbohidrat tetap dibutuhkan; yang dikurangi adalah tepung olahan, bukan menghilangkan karbohidrat.' },
+    upf: { id: 'upf', icon: '🥤', title: 'Kurangi konsumsi UPF (Ultra-Processed Food)', short: 'Hindari makanan kemasan tinggi pengawet, pewarna, dan pemanis buatan.',
+        steps: ['Kurangi snack kemasan, sosis/nugget, mi instan, dan minuman berenergi.', 'Pilih makanan segar yang dimasak sendiri bila memungkinkan.', 'Baca label: daftar bahan yang sangat panjang dan sulit dibaca biasanya termasuk UPF.', 'Belanja bahan segar dulu, baru lorong snack bila perlu.'],
+        caution: 'Tidak harus berhenti total; kurangi bertahap agar lebih bertahan lama.' },
     periksa: { id: 'periksa', icon: '🩺', title: 'Periksa ke tenaga kesehatan', short: 'Keluhanmu perlu diperiksa lebih lanjut.',
         steps: ['Catat sejak kapan keluhan muncul dan seberapa parah.', 'Datang ke puskesmas, bidan, atau dokter kandungan.', 'Bawa catatan jurnal & hasil skrining FLOWMATE.'],
         caution: 'Jika pingsan, perdarahan sangat deras, atau nyeri hebat mendadak, segera ke IGD.' },
@@ -117,6 +126,7 @@ function buildRecs(cat, lokasi, hasRedFlag) {
     if (!hasRedFlag || cat === 'ringan') list.push(R.gerak);
     if (!hasRedFlag && lokasi >= 1 && cat !== 'tidak') list.push(R.pijat);
     list.push(R.gaya);
+    list.push(R.gula, R.tepung, R.upf);   // saran pola makan: gula, tepung, UPF
     if (cat === 'berat' && !hasRedFlag) list.unshift(R.periksa);
     return list;
 }
