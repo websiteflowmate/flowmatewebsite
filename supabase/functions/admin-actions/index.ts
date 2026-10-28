@@ -1,4 +1,4 @@
-// FLOWMATE - Edge Function "admin-actions": buat / hapus akun dan reset kata sandi oleh admin.
+// FLOWMATE - Edge Function "super-action": buat / hapus akun dan reset kata sandi oleh admin.
 // Memakai service-role key (otomatis tersedia di lingkungan Edge Function, tidak pernah ke browser).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -10,20 +10,47 @@ const RESERVED = ['admin', 'superadmin', 'root', 'flowmate'];
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
-    const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const url = Deno.env.get('SUPABASE_URL')!;
+    // Dukung key lama (service_role JWT) maupun key baru (sb_secret_...)
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SECRET_KEY') || '';
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || '';
+    if (!serviceKey) return reply({ ok: false, error: 'Konfigurasi server: SUPABASE_SERVICE_ROLE_KEY tidak tersedia di Edge Function.' });
+
+    const sb = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
     // 1) Siapa yang memanggil?
-    const token = (req.headers.get('Authorization') || '').replace('Bearer ', '');
+    const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+    if (!token) return reply({ ok: false, error: 'Tidak terautentikasi.' });
     const { data: auth, error: authErr } = await sb.auth.getUser(token);
     if (authErr || !auth.user) return reply({ ok: false, error: 'Tidak terautentikasi.' });
-    const { data: caller } = await sb.from('profiles').select('id, role').eq('id', auth.user.id).single();
-    if (!caller || !['admin', 'superadmin'].includes(caller.role)) return reply({ ok: false, error: 'Hanya admin yang boleh.' });
+
+    // 2) Ambil profil pemanggil. Coba lewat sesi pengguna (RLS: boleh baca profil sendiri),
+    //    lalu cadangan lewat service role. Error-nya tidak lagi ditelan diam-diam.
+    let caller: { id: string; role: string } | null = null;
+    if (anonKey) {
+      const asUser = createClient(url, anonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await asUser.from('profiles').select('id, role').eq('id', auth.user.id).maybeSingle();
+      if (data) caller = data;
+    }
+    if (!caller) {
+      const { data, error: callerErr } = await sb.from('profiles').select('id, role').eq('id', auth.user.id).maybeSingle();
+      if (callerErr) return reply({ ok: false, error: 'Gagal membaca profil pemanggil: ' + callerErr.message });
+      caller = data as { id: string; role: string } | null;
+    }
+    if (!caller) return reply({ ok: false, error: 'Profil pemanggil tidak ditemukan untuk akun ini.' });
+    if (!['admin', 'superadmin'].includes(caller.role)) return reply({ ok: false, error: 'Hanya admin yang boleh.' });
     const isSuper = caller.role === 'superadmin';
 
-    const { action, username, password, nama, role } = await req.json();
-    const usn = String(username || '').toLowerCase();
+    const body = await req.json().catch(() => ({}));
+    const { action, username, password, nama, role } = body ?? {};
+    const usn = String(username || '').toLowerCase().trim();
 
-    // 2) Buat akun baru
+    if (action === 'whoami') return reply({ ok: true, id: caller.id, role: caller.role });
+
+    // 3) Buat akun baru
     if (action === 'create') {
       if (!/^[a-z0-9._]{3,20}$/.test(usn) || RESERVED.includes(usn)) return reply({ ok: false, error: 'Username tidak valid / dicadangkan.' });
       if (String(password || '').length < 6) return reply({ ok: false, error: 'Kata sandi minimal 6 karakter.' });
@@ -38,8 +65,9 @@ Deno.serve(async (req) => {
       return reply({ ok: true });
     }
 
-    // 3) Hapus / reset: cari target
-    const { data: target } = await sb.from('profiles').select('id, role').eq('username', usn).maybeSingle();
+    // 4) Hapus / reset: cari target
+    const { data: target, error: targetErr } = await sb.from('profiles').select('id, role').eq('username', usn).maybeSingle();
+    if (targetErr) return reply({ ok: false, error: 'Gagal mencari pengguna: ' + targetErr.message });
     if (!target) return reply({ ok: false, error: 'Pengguna tidak ditemukan.' });
     if (target.role === 'superadmin') return reply({ ok: false, error: 'Akun superadmin tidak boleh diubah.' });
     if (target.role === 'admin' && !isSuper) return reply({ ok: false, error: 'Hanya superadmin yang boleh mengelola admin.' });
