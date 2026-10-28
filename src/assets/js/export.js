@@ -1,6 +1,10 @@
 /** FLOWMATE - Ekspor data: PDF (pasien) & Excel (admin / super admin). Butuh jsPDF & SheetJS (CDN di index.html). */
 const pdfSafe = s => String(s ?? '').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[^\x20-\x7E\u00A0-\u00FF–—•’‘“”]/g, '').replace(/\s+\n/g, '\n');
 
+/** Saran pola makan terbaru: selalu ikut di PDF & Excel, termasuk untuk data skrining lama. */
+const DIET_TITLES = ['Kurangi konsumsi gula', 'Kurangi konsumsi berbahan dasar tepung', 'Kurangi konsumsi UPF (Ultra-Processed Food)'];
+const withDietRecs = titles => { const t = titles || []; return [...t, ...DIET_TITLES.filter(x => !t.includes(x))]; };
+
 function downloadPDFAnalysis() {
     const user = getCurrentUser(); if (!user) return;
     const scr = DB.lastScreening(user.username);
@@ -43,7 +47,7 @@ function downloadPDFAnalysis() {
     else text('Tidak ada tanda bahaya yang dipilih saat skrining.', 10);
 
     h2('4. Saran Nonfarmakologis (tanpa obat)');
-    scr.recs.forEach(title => { const r = Object.values(REC_LIB).find(x => x.title === title); text(`• ${title}${r ? ': ' + r.short : ''}`, 10, false, [30, 41, 59], 2); });
+    scr.recs && withDietRecs(scr.recs).forEach(title => { const r = Object.values(REC_LIB).find(x => x.title === title); text(`• ${title}${r ? ': ' + r.short : ''}`, 10, false, [30, 41, 59], 2); });
 
     const ph = pharmaRecs(scr.walidd.cat, scr.redFlags.length > 0);
     h2('5. Saran Farmakologis (obat umum, tanpa dosis)');
@@ -74,7 +78,7 @@ function buildRekapRows() {
         'Skor Nyeri WaLIDD (0-12)': s.walidd.score, 'Kategori Dismenore': s.walidd.label, 'Intensitas Nyeri (0-10)': s.pain ?? '',
         'Kualitas Hidup': qolLevel(s.qol.total).label,
         ...Object.fromEntries(QOL_ASPECTS.map(a => [a.label, qolLevel(s.qol.aspects[a.key]).label])),
-        'Tanda Bahaya': s.redFlags.length ? s.redFlags.join('; ') : 'Tidak ada', 'Rekomendasi Utama': s.mainRec, 'Saran Nonfarmakologis': s.recs.join('; '),
+        'Tanda Bahaya': s.redFlags.length ? s.redFlags.join('; ') : 'Tidak ada', 'Rekomendasi Utama': s.mainRec, 'Saran Nonfarmakologis': withDietRecs(s.recs).join('; '),
         'Saran Farmakologis (tanpa dosis)': (s.farmako && s.farmako.length) ? s.farmako.join('; ') : (pharmaRecs(s.walidd.cat, s.redFlags.length > 0).items.map(x => x.name).join('; ') || 'Tidak diperlukan'),
     }));
     // Pre vs Post per pengguna (pre terakhir vs post terakhir)
